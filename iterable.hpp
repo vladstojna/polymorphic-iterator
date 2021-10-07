@@ -220,7 +220,7 @@ namespace it
         {
             std::cout << (_on_stack ? "stack" : "heap") << " destroyed\n";
             if (_on_stack)
-                stack_concept().~it_concept();
+                stack_concept()->~it_concept();
             else
                 _heap.~unique_ptr();
         }
@@ -288,8 +288,8 @@ namespace it
             }
         }
 
-        it_concept& stack_concept();
-        const it_concept& stack_concept() const;
+        it_concept* stack_concept();
+        const it_concept* stack_concept() const;
         it_concept& get_concept();
         const it_concept& get_concept() const;
 
@@ -302,29 +302,29 @@ namespace it
     };
 
     template<typename T>
-    typename iterator<T>::it_concept& iterator<T>::stack_concept()
+    typename iterator<T>::it_concept* iterator<T>::stack_concept()
     {
         using model = it_model<void*>;
-        return *std::launder(reinterpret_cast<model*>(&_stack));
+        return std::launder(reinterpret_cast<model*>(&_stack));
     }
 
     template<typename T>
-    const typename iterator<T>::it_concept& iterator<T>::stack_concept() const
+    const typename iterator<T>::it_concept* iterator<T>::stack_concept() const
     {
         using model = const it_model<void*>;
-        return *std::launder(reinterpret_cast<model*>(&_stack));
+        return std::launder(reinterpret_cast<model*>(&_stack));
     }
 
     template<typename T>
     typename iterator<T>::it_concept& iterator<T>::get_concept()
     {
-        return _on_stack ? stack_concept() : *_heap;
+        return _on_stack ? *stack_concept() : *_heap;
     }
 
     template<typename T>
     const typename iterator<T>::it_concept& iterator<T>::get_concept() const
     {
-        return _on_stack ? stack_concept() : *_heap;
+        return _on_stack ? *stack_concept() : *_heap;
     }
 
     template<typename It>
