@@ -1,5 +1,7 @@
 #pragma once
 
+#include "reference.hpp"
+
 #include <type_traits>
 #include <memory>
 #include <iterator>
@@ -23,7 +25,7 @@ namespace it
         using difference_type = std::ptrdiff_t;
         using value_type = T;
         using pointer = value_type*;
-        using reference = value_type&;
+        using reference = any_reference<value_type>;
         using iterator_category = std::input_iterator_tag;
 
     private:
@@ -97,12 +99,7 @@ namespace it
 
             pointer operator->() override
             {
-                if constexpr (std::is_pointer_v<It>)
-                    return data;
-                else if constexpr (has_arrow_operator<It>::value)
-                    return data.operator->();
-                else
-                    return &(*data);
+                return do_arrow();
             }
 
             void operator++() override
@@ -111,6 +108,27 @@ namespace it
             }
 
         private:
+            template<typename U = It,
+                std::enable_if_t<std::is_pointer_v<U>, bool> = true
+            > pointer do_arrow()
+            {
+                return data;
+            }
+
+            template<typename U = It,
+                std::enable_if_t<has_arrow_operator<U>::value, bool> = true
+            > pointer do_arrow()
+            {
+                return data.operator->();
+            }
+
+            template<typename U = It, std::enable_if_t<
+                !has_arrow_operator<U>::value && !std::is_pointer_v<U>, bool> = true
+            > pointer do_arrow()
+            {
+                throw std::logic_error("Iterator has no operator->()");
+            }
+
             bool equal(const it_concept& other) const override
             {
                 return data == static_cast<const it_model&>(other).data;
@@ -155,10 +173,7 @@ namespace it
         };
 
         template<typename U>
-        struct goes_to_heap
-        {
-            static constexpr bool value = !goes_to_stack<U>::value;
-        };
+        using goes_to_heap = std::negation<goes_to_stack<U>>;
 
         template<typename It>
         using stack_iterator =
@@ -264,7 +279,7 @@ namespace it
             if (_on_stack)
             {
                 std::cout << "stack copy\n";
-                other.stack_concept().clone_static(&_stack);
+                other.stack_concept()->clone_static(&_stack);
             }
             else
             {
