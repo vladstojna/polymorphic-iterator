@@ -7,7 +7,7 @@
 namespace it
 {
     template<typename ValueType>
-    class reference
+    class any_reference
     {
     public:
         using value_type = ValueType;
@@ -28,22 +28,22 @@ namespace it
 
     public:
         template<typename Ref, typename = std::enable_if_t<is_proxy_ref<Ref>::value>>
-        reference(Ref ref) :
+        any_reference(Ref ref) :
             _self(std::make_unique<ref_proxy<Ref>>(std::move(ref)))
         {}
 
         template<typename Ref, typename = std::enable_if_t<is_same_ref<Ref>::value>>
-        reference(Ref& ref) :
+        any_reference(Ref& ref) :
             _self(std::make_unique<ref_model<Ref>>(ref))
         {}
 
-        reference& operator=(const value_type& val)
+        any_reference& operator=(const value_type& val)
         {
             _self->set(val);
             return *this;
         }
 
-        reference& operator=(value_type&& val)
+        any_reference& operator=(value_type&& val)
         {
             _self->set(std::move(val));
             return *this;
